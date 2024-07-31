@@ -36,7 +36,7 @@ AutomationRecorder
 1. リポジトリをクローンします。
     ```bash
     git clone https://github.com/stemtazoo/AutomationRecorder.git
-    cd AutomationRecorder
+    cd AutomationRecorderForRPA
     ```
 
 2. 仮想環境を作成して有効化します。
