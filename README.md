@@ -1,8 +1,8 @@
 # AutomationRecorder
 
 ## 概要
-AutomationRecorderは、Pythonを使用してWindowsでマウスやキーボードの操作を自動化するRPAアプリケーションをpyautoguiやpywinautoを使って、制作する人向けのアプリケーションです。<br>
-このアプリケーションは、クリック位置を記録し、特定の操作を実行するためのコードを生成するGUIを提供します。
+`AutomationRecorder`は、`Python`を使用して`Windows`でマウスやキーボードの操作を自動化する`RPA`アプリケーションを`pyautogui`や`pywinauto`を使って、制作する人向けのアプリケーションです。<br>
+このアプリケーションは、クリック位置を記録し、特定の操作を実行するためのコードを生成するなどのGUIを提供します。
 
 ## 機能
 
