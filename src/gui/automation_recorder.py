@@ -10,6 +10,9 @@ from pynput import mouse
 import pyautogui
 import pygetwindow as gw
 from pywinauto.application import Application
+from pywinauto.uia_defines import IUIA
+from pywinauto.controls.uiawrapper import UIAWrapper
+from pywinauto.uia_element_info import UIAElementInfo
 
 class AutomationRecorderApp:
     def __init__(self):
@@ -221,26 +224,39 @@ class AutomationRecorderApp:
             logging.error("An error occurred while saving controls to file", exc_info=True)
 
     def on_click(self, x, y, button, pressed):
-        """Handles mouse click events to record click positions."""
         try:
             if pressed:
                 self.root.update_idletasks()
-                self.window_x = self.root.winfo_rootx()
-                self.window_y = self.root.winfo_rooty()
-                self.window_width = self.root.winfo_width()
-                self.window_height = self.root.winfo_height()
-                
                 screen_x, screen_y = pyautogui.position()
-                if not (self.window_x <= screen_x <= self.window_x + self.window_width and
-                        self.window_y <= screen_y <= self.window_y + self.window_height):
+
+                if not (self.root.winfo_rootx() <= screen_x <= self.root.winfo_rootx() + self.root.winfo_width() and
+                        self.root.winfo_rooty() <= screen_y <= self.root.winfo_rooty() + self.root.winfo_height()):
                     self.screen_x, self.screen_y = screen_x, screen_y
                     self.text_widget_click.config(state=tk.NORMAL)
                     self.text_widget_click.delete("1.0", tk.END)
                     self.text_widget_click.insert(tk.END, f'Clicked at: ({screen_x}, {screen_y})')
                     self.text_widget_click.config(state=tk.DISABLED)
                     print(f'Clicked at: ({screen_x}, {screen_y})')
+
+                    # # 🛠 修正ここ！
+                    # try:
+                    #     element_info = UIAElementInfo.from_point(screen_x, screen_y)
+                    #     ctrl = UIAWrapper(element_info)
+                    #     info = ctrl.element_info
+                    #     result = f"【クリック位置のコントロール】\n名前: {info.name}\n" \
+                    #             f"クラス: {info.class_name}\nタイプ: {info.control_type}\n" \
+                    #             f"AutomationId: {info.automation_id}"
+
+                    #     self.text_widget_control.config(state=tk.NORMAL)
+                    #     self.text_widget_control.delete("1.0", tk.END)
+                    #     self.text_widget_control.insert(tk.END, result)
+                    #     self.text_widget_control.config(state=tk.DISABLED)
+                    #     print("クリック位置のコントロール取得完了")
+
+                    # except Exception as ee:
+                    #     print("コントロール取得時エラー:", ee)
         except Exception as e:
-            logging.error("An error occurred while processing the click event", exc_info=True)
+            print("コントロール取得時エラー:", e)
 
     def generate_click_code(self):
         """Generates and displays the code for the recorded click action."""
