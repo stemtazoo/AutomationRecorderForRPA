@@ -16,7 +16,16 @@ class AutomationRecorderApp:
         """Initializes the main application window and sets up the tabs."""
         self.root = tk.Tk()
         self.root.title("Automation Recorder")
-        self.root.geometry("850x600")
+        
+        # ここにカスタムサイズ設定を追加！
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        width = int(screen_width * 0.8)
+        height = int(screen_height * 0.8)
+        self.root.geometry(f"{width}x{height}")
+        self.root.minsize(600, 400)
+        
+        self.backend_var = tk.StringVar(value="win32")  # デフォルトは win32
 
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill='both')
@@ -118,22 +127,30 @@ class AutomationRecorderApp:
         """Sets up the control tab for listing and saving window controls."""
         self.control_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.control_tab, text='ウィンドウコントロール')
+        
+        self.update_windows_button = tk.Button(self.control_tab, text="ウィンドウリストを更新", command=self.update_window_list)
+        self.update_windows_button.pack(pady=10)
 
         self.window_list_var = tk.StringVar(self.control_tab)
         self.window_list_menu = tk.OptionMenu(self.control_tab, self.window_list_var, '')
         self.window_list_menu.pack(pady=10)
 
-        self.update_windows_button = tk.Button(self.control_tab, text="ウィンドウリストを更新", command=self.update_window_list)
-        self.update_windows_button.pack(pady=10)
+       # バックエンド選択ラジオボタン
+        backend_frame = tk.LabelFrame(self.control_tab, text="バックエンドを選択", font=("Arial", 10))
+        backend_frame.pack(pady=5)
 
-        self.text_widget_control = tk.Text(self.control_tab, wrap=tk.WORD, font=("Arial", 14), height=14)
-        self.text_widget_control.pack(pady=20)
+        tk.Radiobutton(backend_frame, text="win32", variable=self.backend_var, value="win32").pack(side=tk.LEFT, padx=10)
+        tk.Radiobutton(backend_frame, text="uia", variable=self.backend_var, value="uia").pack(side=tk.LEFT, padx=10)
 
         self.get_control_button = tk.Button(self.control_tab, text="コントロールを取得", command=self.get_window_controls)
         self.get_control_button.pack(pady=10)
+        
+        self.text_widget_control = tk.Text(self.control_tab, wrap=tk.WORD, font=("Arial", 14), height=14)
+        self.text_widget_control.pack(pady=20)
 
         self.save_button_control = tk.Button(self.control_tab, text="コントロールを保存", command=self.save_controls_to_file)
         self.save_button_control.pack(pady=10)
+        
 
     def get_windows(self):
         """Gets the titles of all open windows and displays them in the window tab."""
@@ -164,14 +181,20 @@ class AutomationRecorderApp:
     def get_window_controls(self):
         """Gets the control identifiers of the selected window and displays them in the control tab."""
         try:
+            print(self.window_list_var.get())
+            print('window control')
             selected_window = self.window_list_var.get()
             if not selected_window:
                 return
 
-            app = Application(backend="uia").connect(title=selected_window)
+            backend = self.backend_var.get()
+            app = Application(backend=backend).connect(title=selected_window)
             window = app.window(title=selected_window)
             f = io.StringIO()
             with redirect_stdout(f):
+                print(window.element_info.name)       # 実際に認識されたウィンドウタイトル
+                print(window.element_info.class_name) # ウィンドウのクラス名
+                print(window.children())
                 window.print_control_identifiers()
             
             output = f.getvalue()
@@ -182,6 +205,7 @@ class AutomationRecorderApp:
             self.text_widget_control.config(state=tk.DISABLED)
         except Exception as e:
             logging.error("An error occurred while getting window controls", exc_info=True)
+            print(e)
 
     def save_controls_to_file(self):
         """Saves the displayed control identifiers to a text file."""
