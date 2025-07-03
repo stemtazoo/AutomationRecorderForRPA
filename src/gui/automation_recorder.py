@@ -5,14 +5,100 @@ import webbrowser
 import logging
 import io
 from contextlib import redirect_stdout
+import threading
+import time
+from ctypes import wintypes, windll, Structure, byref
 
 from pynput import mouse
-import pyautogui
+import keyboard
 import pygetwindow as gw
+import pyautogui
 from pywinauto.application import Application
 from pywinauto.uia_defines import IUIA
 from pywinauto.controls.uiawrapper import UIAWrapper
 from pywinauto.uia_element_info import UIAElementInfo
+from pywinauto import Desktop
+from pywinauto.findwindows import ElementNotFoundError
+
+# POINT 構造体
+class POINT(Structure):
+    _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+    
+def get_cursor_pos():
+    pt = POINT()
+    windll.user32.GetCursorPos(byref(pt))
+    return pt.x, pt.y
+
+def generate_code_example(elem):
+    props = []
+    title = elem.window_text()
+    ctrl_type = elem.element_info.control_type
+    auto_id = elem.element_info.automation_id
+
+    if title:
+        props.append(f'title="{title}"')
+    if ctrl_type:
+        props.append(f'control_type="{ctrl_type}"')
+    if auto_id:
+        props.append(f'automation_id="{auto_id}"')
+
+    if props:
+        return f'dlg.child_window({", ".join(props)}).click_input()'
+    else:
+        return "# 要素を特定する情報が不足しています"
+
+def get_element_under_mouse():
+    try:
+        x, y = get_cursor_pos()
+        elem = Desktop(backend="uia").from_point(x, y)
+        return elem
+    except ElementNotFoundError:
+        return None
+
+def get_element_info_text(elem):
+    if elem:
+        title = elem.window_text()
+        class_name = elem.element_info.class_name
+        ctrl_type = elem.element_info.control_type
+        auto_id = elem.element_info.automation_id
+        rect = elem.rectangle()
+        code = generate_code_example(elem)
+        return (
+            "=== 要素情報 ===\n"
+            f"タイトル: {title}\n"
+            f"クラス名: {class_name}\n"
+            f"コントロールタイプ: {ctrl_type}\n"
+            f"オートメーションID: {auto_id}\n"
+            f"矩形: {rect}\n"
+            f"コード例: {code}"
+        )
+    else:
+        return "要素が見つかりませんでした。"
+
+def start_ui_inspector_thread(text_widget):
+    def worker():
+        last_output = ""
+        while True:
+            try:
+                if keyboard.is_pressed('ctrl+shift+x'):
+                    elem = get_element_under_mouse()
+                    output = get_element_info_text(elem)
+                    if output != last_output:
+                        text_widget.config(state="normal")
+                        text_widget.delete("1.0", "end")
+                        text_widget.insert("end", output)
+                        text_widget.config(state="disabled")
+                        last_output = output
+                    time.sleep(1)  # 多重検出防止
+                time.sleep(0.1)
+            except Exception as e:
+                text_widget.config(state="normal")
+                text_widget.delete("1.0", "end")
+                text_widget.insert("end", f"エラー: {e}")
+                text_widget.config(state="disabled")
+                time.sleep(1)
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
 
 class AutomationRecorderApp:
     def __init__(self):
@@ -37,6 +123,7 @@ class AutomationRecorderApp:
         self.setup_key_tab()
         self.setup_window_tab()
         self.setup_control_tab()
+        self.setup_ui_inspector_tab()
 
         self.listener = mouse.Listener(on_click=self.on_click)
         self.listener.start()
@@ -339,6 +426,23 @@ class AutomationRecorderApp:
             self.root.mainloop()
         except Exception as e:
             logging.error("An error occurred in the main loop", exc_info=True)
+
+    def setup_ui_inspector_tab(self):
+        """UI要素インスペクタタブを追加する"""
+        self.ui_inspector_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.ui_inspector_tab, text='UI要素インスペクタ')
+        
+        label = tk.Label(self.ui_inspector_tab, text="Ctrl+Shift+Xでマウス下のUI要素情報を取得します。", font=("Arial", 12))
+        label.pack(pady=5)
+        
+        self.text_widget_ui_inspector = tk.Text(self.ui_inspector_tab, wrap=tk.WORD, font=("Arial", 12), height=15)
+        self.text_widget_ui_inspector.pack(padx=10, pady=10, fill="both", expand=True)
+        self.text_widget_ui_inspector.insert("end", "Ctrl+Shift+Xを押すと、ここにUI要素情報が表示されます。")
+        self.text_widget_ui_inspector.config(state="disabled")
+        
+        # 別スレッドで監視
+        start_ui_inspector_thread(self.text_widget_ui_inspector)
+
 
 if __name__ == "__main__":
     app = AutomationRecorderApp()
