@@ -1,5 +1,8 @@
 @echo off
 
+REM バッチファイルのある場所に移動
+cd /d %~dp0
+
 REM 仮想環境がなければ作成し、requirements.txtをインストール
 if not exist .venv (
     python -m venv .venv
@@ -17,5 +20,5 @@ if not exist .venv (
 REM 仮想環境を有効化してmain.pyを起動
 call .venv\Scripts\activate
 python main.py
-REM （必要ならここでdeactivateしてもよいが、ウィンドウ自体が閉じるなら不要）
 pause
+exit /b
