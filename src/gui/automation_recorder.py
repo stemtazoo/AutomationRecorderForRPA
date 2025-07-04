@@ -1,3 +1,5 @@
+"""Graphical user interface for recording automation actions on Windows."""
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -30,13 +32,15 @@ from ..utils.inspector_utils import (
 # POINT 構造体
 class POINT(Structure):
     _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
-    
+
 def get_cursor_pos():
+    """Return the current cursor position as an ``(x, y)`` tuple."""
     pt = POINT()
     windll.user32.GetCursorPos(byref(pt))
     return pt.x, pt.y
 
 def generate_code_example(elem):
+    """Return example pywinauto code to click ``elem``."""
     props = []
     title = elem.window_text()
     ctrl_type = elem.element_info.control_type
@@ -55,6 +59,7 @@ def generate_code_example(elem):
         return "# 要素を特定する情報が不足しています"
 
 def get_element_under_mouse():
+    """Return the UI element currently under the mouse cursor."""
     try:
         x, y = get_cursor_pos()
         elem = Desktop(backend="uia").from_point(x, y)
@@ -63,6 +68,7 @@ def get_element_under_mouse():
         return None
 
 def get_element_info_text(elem):
+    """Return formatted information text for ``elem`` or a not-found message."""
     if elem:
         title = elem.window_text()
         class_name = elem.element_info.class_name
@@ -84,6 +90,7 @@ def get_element_info_text(elem):
 
 
 class AutomationRecorderApp:
+    """Main window for recording and generating automation scripts."""
     def __init__(self):
         """Initializes the main application window and sets up the tabs."""
         self.root = tk.Tk()

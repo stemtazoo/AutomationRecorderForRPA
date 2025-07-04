@@ -1,3 +1,5 @@
+"""Entry point for the Automation Recorder GUI application."""
+
 import logging
 from src.gui.automation_recorder import AutomationRecorderApp
 

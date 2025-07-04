@@ -1,0 +1,2 @@
+"""Keyboard automation utilities (placeholder)."""
+
