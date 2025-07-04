@@ -22,6 +22,10 @@ from pywinauto.uia_element_info import UIAElementInfo
 from pywinauto import Desktop
 from pywinauto.findwindows import ElementNotFoundError
 from pywinauto.controls.hwndwrapper import HwndWrapper
+from ..utils.inspector_utils import (
+    format_inspector_output,
+    get_window_title_with_parent,
+)
 
 # POINT 構造体
 class POINT(Structure):
@@ -78,87 +82,6 @@ def get_element_info_text(elem):
     else:
         return "要素が見つかりませんでした。"
 
-def format_inspector_output(uia_info, win32_info):
-    """
-    UIAとWin32両方の要素情報を見やすく整形して返す関数です。
-    各項目はdictで渡してください。
-    必要に応じて項目を増やしたりカスタマイズできます。
-    """
-    uia = f'''[UIA]
-=== 要素情報 ===
-タイトル: {uia_info.get("name", "")}
-クラス名: {uia_info.get("class_name", "")}
-コントロールタイプ: {uia_info.get("control_type", "")}
-オートメーションID: {uia_info.get("automation_id", "")}
-矩形: {uia_info.get("rectangle", "")}
-
-階層パス例:
-dlg.child_window(title="{uia_info.get("name", "")}", control_type="{uia_info.get("control_type", "")}", automation_id="{uia_info.get("automation_id", "")}")
-
-パターン例:
-.click_input()   # クリック
-.set_focus()     # フォーカス移動
-.get_value()     # 値取得
-.window_text()   # テキスト取得
-
-コード例:
-{uia_info.get("code_example", "")}
-'''
-
-    win32 = f'''[Win32]
-=== 要素情報 ===
-ウィンドウテキスト: {win32_info.get("window_text", "")}
-クラス名: {win32_info.get("class_name", "")}
-ハンドル: {win32_info.get("handle", "")}
-矩形: {win32_info.get("rectangle", "")}
-
-階層パス例:
-dlg.child_window(title="{win32_info.get("window_text", "")}", class_name="{win32_info.get("class_name", "")}", handle={win32_info.get("handle", "")})
-
-パターン例:
-.click()         # クリック
-.set_focus()     # フォーカス移動
-.window_text()   # テキスト取得
-.is_visible()    # 表示状態の判定
-
-コード例:
-{win32_info.get("code_example", "")}
-'''
-    
-    hint = '''ヒント:\n・階層パス例は要素の一意な指定に便利です。\n・パターン例は自動化でよく使うメソッドです。\n・コード例はそのままスクリプトにコピペして使えます。'''
-    return uia + "\n\n" + win32 + "\n\n" + hint
-
-def get_window_title_with_parent(hwnd):
-    title = win32gui.GetWindowText(hwnd)
-    if title:
-        return title
-    # タイトルが無い場合は親ウィンドウをたどる
-    parent = win32gui.GetParent(hwnd)
-    if parent:
-        return get_window_title_with_parent(parent)
-    return ""  # 親もなければ空文字
-
-# 使用例（ダミーデータ）
-uia_info = {
-    "name": "OK",
-    "class_name": "Button",
-    "control_type": "Button",
-    "automation_id": "1",
-    "rectangle": "(L546, T641, R626, B673)",
-    "code_example": "dlg.child_window(title=\"OK\", control_type=\"Button\", automation_id=\"1\").click_input()"
-}
-
-win32_info = {
-    "window_text": "OK",
-    "class_name": "Button",
-    "handle": 123456,
-    "rectangle": "(L546, T641, R626, B673)",
-    "code_example": "dlg.child_window(title=\"OK\", class_name=\"Button\", handle=123456).click()"
-}
-
-
-if __name__ == "__main__":
-    print(format_inspector_output(uia_info, win32_info))
 
 class AutomationRecorderApp:
     def __init__(self):
