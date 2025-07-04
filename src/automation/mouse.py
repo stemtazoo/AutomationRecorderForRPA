@@ -1,0 +1,2 @@
+"""Mouse automation utilities (placeholder)."""
+
