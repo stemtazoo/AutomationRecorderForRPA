@@ -1,4 +1,5 @@
-pyautogui
-pygetwindow
-pynput
-pywinauto
+PyAutoGUI==0.9.54
+PyGetWindow==0.0.9
+pynput==1.8.1
+pywinauto==0.6.8
+pywin32==306

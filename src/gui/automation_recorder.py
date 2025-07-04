@@ -8,17 +8,20 @@ from contextlib import redirect_stdout
 import threading
 import time
 from ctypes import wintypes, windll, Structure, byref
+import traceback
 
 from pynput import mouse
-import keyboard
+from pynput import keyboard
 import pygetwindow as gw
 import pyautogui
+import win32gui
 from pywinauto.application import Application
 from pywinauto.uia_defines import IUIA
 from pywinauto.controls.uiawrapper import UIAWrapper
 from pywinauto.uia_element_info import UIAElementInfo
 from pywinauto import Desktop
 from pywinauto.findwindows import ElementNotFoundError
+from pywinauto.controls.hwndwrapper import HwndWrapper
 
 # POINT 構造体
 class POINT(Structure):
@@ -75,30 +78,87 @@ def get_element_info_text(elem):
     else:
         return "要素が見つかりませんでした。"
 
-def start_ui_inspector_thread(text_widget):
-    def worker():
-        last_output = ""
-        while True:
-            try:
-                if keyboard.is_pressed('ctrl+shift+x'):
-                    elem = get_element_under_mouse()
-                    output = get_element_info_text(elem)
-                    if output != last_output:
-                        text_widget.config(state="normal")
-                        text_widget.delete("1.0", "end")
-                        text_widget.insert("end", output)
-                        text_widget.config(state="disabled")
-                        last_output = output
-                    time.sleep(1)  # 多重検出防止
-                time.sleep(0.1)
-            except Exception as e:
-                text_widget.config(state="normal")
-                text_widget.delete("1.0", "end")
-                text_widget.insert("end", f"エラー: {e}")
-                text_widget.config(state="disabled")
-                time.sleep(1)
-    thread = threading.Thread(target=worker, daemon=True)
-    thread.start()
+def format_inspector_output(uia_info, win32_info):
+    """
+    UIAとWin32両方の要素情報を見やすく整形して返す関数です。
+    各項目はdictで渡してください。
+    必要に応じて項目を増やしたりカスタマイズできます。
+    """
+    uia = f'''[UIA]
+=== 要素情報 ===
+タイトル: {uia_info.get("name", "")}
+クラス名: {uia_info.get("class_name", "")}
+コントロールタイプ: {uia_info.get("control_type", "")}
+オートメーションID: {uia_info.get("automation_id", "")}
+矩形: {uia_info.get("rectangle", "")}
+
+階層パス例:
+dlg.child_window(title="{uia_info.get("name", "")}", control_type="{uia_info.get("control_type", "")}", automation_id="{uia_info.get("automation_id", "")}")
+
+パターン例:
+.click_input()   # クリック
+.set_focus()     # フォーカス移動
+.get_value()     # 値取得
+.window_text()   # テキスト取得
+
+コード例:
+{uia_info.get("code_example", "")}
+'''
+
+    win32 = f'''[Win32]
+=== 要素情報 ===
+ウィンドウテキスト: {win32_info.get("window_text", "")}
+クラス名: {win32_info.get("class_name", "")}
+ハンドル: {win32_info.get("handle", "")}
+矩形: {win32_info.get("rectangle", "")}
+
+階層パス例:
+dlg.child_window(title="{win32_info.get("window_text", "")}", class_name="{win32_info.get("class_name", "")}", handle={win32_info.get("handle", "")})
+
+パターン例:
+.click()         # クリック
+.set_focus()     # フォーカス移動
+.window_text()   # テキスト取得
+.is_visible()    # 表示状態の判定
+
+コード例:
+{win32_info.get("code_example", "")}
+'''
+    
+    hint = '''ヒント:\n・階層パス例は要素の一意な指定に便利です。\n・パターン例は自動化でよく使うメソッドです。\n・コード例はそのままスクリプトにコピペして使えます。'''
+    return uia + "\n\n" + win32 + "\n\n" + hint
+
+def get_window_title_with_parent(hwnd):
+    title = win32gui.GetWindowText(hwnd)
+    if title:
+        return title
+    # タイトルが無い場合は親ウィンドウをたどる
+    parent = win32gui.GetParent(hwnd)
+    if parent:
+        return get_window_title_with_parent(parent)
+    return ""  # 親もなければ空文字
+
+# 使用例（ダミーデータ）
+uia_info = {
+    "name": "OK",
+    "class_name": "Button",
+    "control_type": "Button",
+    "automation_id": "1",
+    "rectangle": "(L546, T641, R626, B673)",
+    "code_example": "dlg.child_window(title=\"OK\", control_type=\"Button\", automation_id=\"1\").click_input()"
+}
+
+win32_info = {
+    "window_text": "OK",
+    "class_name": "Button",
+    "handle": 123456,
+    "rectangle": "(L546, T641, R626, B673)",
+    "code_example": "dlg.child_window(title=\"OK\", class_name=\"Button\", handle=123456).click()"
+}
+
+
+if __name__ == "__main__":
+    print(format_inspector_output(uia_info, win32_info))
 
 class AutomationRecorderApp:
     def __init__(self):
@@ -124,6 +184,7 @@ class AutomationRecorderApp:
         self.setup_window_tab()
         self.setup_control_tab()
         self.setup_ui_inspector_tab()
+        self.start_ui_inspector_hotkey_listener()
 
         self.listener = mouse.Listener(on_click=self.on_click)
         self.listener.start()
@@ -241,7 +302,6 @@ class AutomationRecorderApp:
         self.save_button_control = tk.Button(self.control_tab, text="コントロールを保存", command=self.save_controls_to_file)
         self.save_button_control.pack(pady=10)
         
-
     def get_windows(self):
         """Gets the titles of all open windows and displays them in the window tab."""
         try:
@@ -427,6 +487,110 @@ class AutomationRecorderApp:
         except Exception as e:
             logging.error("An error occurred in the main loop", exc_info=True)
 
+    def start_ui_inspector_hotkey_listener(self):
+        self.ctrl = False
+        self.shift = False
+        self.x = False
+
+        def on_press(key):
+            if key in [keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
+                self.ctrl = True
+            if key in [keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r]:
+                self.shift = True
+            # ここがポイント！
+            if hasattr(key, 'char') and (key.char == 'x' or key.char == 'X' or key.char == '\x18'):
+                self.x = True
+            print(f"ctrl={self.ctrl} shift={self.shift} x={self.x}, key={key}")
+            if self.ctrl and self.shift and self.x:
+                print("Hotkey Detected! Ctrl+Shift+X")
+                self.inspect_element_under_cursor()
+
+        def on_release(key):
+            if key in [keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
+                self.ctrl = False
+            if key in [keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r]:
+                self.shift = False
+            if hasattr(key, 'char') and (key.char == 'x' or key.char == 'X' or key.char == '\x18'):
+                self.x = False
+
+        listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+        listener.daemon = True
+        listener.start()
+
+    def inspect_element_under_cursor(self):
+        print("inspect_element_under_cursor called")
+        try:
+            x, y = pyautogui.position()
+            hwnd = win32gui.WindowFromPoint((x, y))
+            window_title = get_window_title_with_parent(hwnd)
+            
+            # dlgサンプル文字列
+            dlg_code = f"""【dlg設定サンプル】
+from pywinauto.application import Application
+# backend は 'uia' または 'win32' から選べます
+app = Application(backend="uia").connect(title="{window_title}")
+dlg = app.window(title="{window_title}")
+# ↓このdlg変数を使って下のコード例をそのまま利用できます！
+"""
+            
+            # --- UIA側 ---
+            try:
+                from pywinauto.uia_element_info import UIAElementInfo
+                from pywinauto.controls.uiawrapper import UIAWrapper
+                uia_elem = UIAElementInfo.from_point(x, y)
+                uia_wrap = UIAWrapper(uia_elem)
+                uia_info = {
+                    "name": uia_wrap.element_info.name,
+                    "class_name": uia_wrap.element_info.class_name,
+                    "control_type": uia_wrap.element_info.control_type,
+                    "automation_id": uia_wrap.element_info.automation_id,
+                    "rectangle": str(uia_wrap.element_info.rectangle),
+                    "code_example": f'dlg.child_window(title=\"{uia_wrap.element_info.name}\", control_type=\"{uia_wrap.element_info.control_type}\", automation_id=\"{uia_wrap.element_info.automation_id}\").click_input()'
+                }
+            except Exception as e:
+                print("UIA取得エラー", e)
+                uia_info = {"name": "取得エラー", "class_name": str(e), "control_type": "", "automation_id": "", "rectangle": "", "code_example": ""}
+
+            # --- Win32側 ---
+            try:
+                hwnd = win32gui.WindowFromPoint((x, y))
+                win32_wrap = HwndWrapper(hwnd)
+                win32_info = {
+                    "window_text": win32_wrap.window_text(),
+                    "class_name": win32_wrap.friendly_class_name(),
+                    "handle": win32_wrap.handle,
+                    "rectangle": str(win32_wrap.rectangle()),
+                    "code_example": f'dlg.child_window(title=\"{win32_wrap.window_text()}\", class_name=\"{win32_wrap.friendly_class_name()}\", handle={win32_wrap.handle}).click()'
+                }
+            except Exception as e:
+                print("Win32取得エラー", e)
+                win32_info = {
+                    "window_text": "取得エラー",
+                    "class_name": str(e),
+                    "handle": "",
+                    "rectangle": "",
+                    "code_example": ""
+                }
+
+            # --- 表示部分 ---
+            result = (
+                f"{dlg_code}\n"
+                f"画面名: {window_title}\n\n"
+                f"{format_inspector_output(uia_info, win32_info)}"
+            )
+            print("resultを表示します")
+            self.text_widget_ui_inspector.config(state="normal")
+            self.text_widget_ui_inspector.delete("1.0", "end")
+            self.text_widget_ui_inspector.insert("end", result)
+            self.text_widget_ui_inspector.config(state="disabled")
+            print("テキストボックス更新完了")
+        except Exception as e:
+            print("inspect_element_under_cursor error:", e)
+            self.text_widget_ui_inspector.config(state="normal")
+            self.text_widget_ui_inspector.delete("1.0", "end")
+            self.text_widget_ui_inspector.insert("end", f"エラー: {e}")
+            self.text_widget_ui_inspector.config(state="disabled")
+
     def setup_ui_inspector_tab(self):
         """UI要素インスペクタタブを追加する"""
         self.ui_inspector_tab = ttk.Frame(self.notebook)
@@ -440,10 +604,13 @@ class AutomationRecorderApp:
         self.text_widget_ui_inspector.insert("end", "Ctrl+Shift+Xを押すと、ここにUI要素情報が表示されます。")
         self.text_widget_ui_inspector.config(state="disabled")
         
-        # 別スレッドで監視
-        start_ui_inspector_thread(self.text_widget_ui_inspector)
-
 
 if __name__ == "__main__":
-    app = AutomationRecorderApp()
-    app.run()
+    try:
+        print("Automation Recorderを起動します...")
+        app = AutomationRecorderApp()
+        app.run()
+    except Exception as e:
+        print("起動時エラー:", e)
+        traceback.print_exc()
+        input("何かキーを押すと終了します")
