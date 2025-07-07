@@ -7,7 +7,7 @@ from pynput import keyboard
 from pywinauto.controls.hwndwrapper import HwndWrapper
 from pywinauto import Desktop
 from pywinauto.findwindows import ElementNotFoundError
-from ..utils.inspector_utils import format_inspector_output, get_window_title_with_parent
+from ...utils.inspector_utils import format_inspector_output, get_window_title_with_parent
 
 
 class UIInspectorTab:
