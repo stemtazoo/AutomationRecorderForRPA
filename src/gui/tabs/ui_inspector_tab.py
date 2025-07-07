@@ -26,31 +26,17 @@ class UIInspectorTab:
         self.text_widget.insert("end", "Ctrl+Shift+Xを押すと、ここにUI要素情報が表示されます。")
         self.text_widget.config(state="disabled")
 
-        self.ctrl = self.shift = self.x = False
         self.start_hotkey_listener()
 
     def start_hotkey_listener(self):
-        def on_press(key):
-            if key in [keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
-                self.ctrl = True
-            elif key in [keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r]:
-                self.shift = True
-            elif hasattr(key, "char") and key.char and key.char.lower() == "x":
-                self.x = True
-            if self.ctrl and self.shift and self.x:
-                self.inspect_element_under_cursor()
-
-        def on_release(key):
-            if key in [keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
-                self.ctrl = False
-            elif key in [keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r]:
-                self.shift = False
-            elif hasattr(key, "char") and key.char and key.char.lower() == "x":
-                self.x = False
-
-        listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-        listener.daemon = True
-        listener.start()
+        try:
+            self.hotkey_listener = keyboard.GlobalHotKeys({
+                '<ctrl>+<shift>+x': self.inspect_element_under_cursor
+            })
+            self.hotkey_listener.daemon = True
+            self.hotkey_listener.start()
+        except Exception:
+            logging.error('start_hotkey_listener error', exc_info=True)
 
     def generate_code_example(self, elem):
         props = []
