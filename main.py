@@ -1,10 +1,17 @@
 """Entry point for the Automation Recorder GUI application."""
 
 import logging
+import os
 from src.gui.automation_recorder import AutomationRecorderApp
 
+# Ensure logs directory and file exist
+os.makedirs("logs", exist_ok=True)
+log_path = os.path.join("logs", "app.log")
+if not os.path.exists(log_path):
+    open(log_path, "a").close()
+
 # ログ設定
-logging.basicConfig(filename='logs/app.log', level=logging.ERROR,
+logging.basicConfig(filename=log_path, level=logging.ERROR,
                     format='%(asctime)s %(levelname)s: %(message)s')
 
 if __name__ == "__main__":
