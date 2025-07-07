@@ -49,6 +49,11 @@ class ControlTab:
             logging.error("An error occurred while updating the window list", exc_info=True)
 
     def get_window_controls(self):
+        # Always clear the text widget when attempting to get controls
+        self.text_widget_control.config(state=tk.NORMAL)
+        self.text_widget_control.delete("1.0", tk.END)
+        self.text_widget_control.config(state=tk.DISABLED)
+
         try:
             selected_window = self.window_list_var.get()
             if not selected_window:
@@ -61,11 +66,14 @@ class ControlTab:
                 window.print_control_identifiers()
             output = f.getvalue()
             self.text_widget_control.config(state=tk.NORMAL)
-            self.text_widget_control.delete("1.0", tk.END)
             self.text_widget_control.insert(tk.END, output)
             self.text_widget_control.config(state=tk.DISABLED)
         except Exception:
             logging.error("An error occurred while getting window controls", exc_info=True)
+            self.text_widget_control.config(state=tk.NORMAL)
+            self.text_widget_control.delete("1.0", tk.END)
+            self.text_widget_control.insert(tk.END, "コントロールを取得できません")
+            self.text_widget_control.config(state=tk.DISABLED)
 
     def save_controls_to_file(self):
         try:
