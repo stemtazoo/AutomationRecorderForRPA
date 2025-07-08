@@ -14,6 +14,8 @@ class UIInspectorTab:
     """Tab for inspecting UI elements under the mouse cursor."""
 
     def __init__(self, app):
+        """UI要素インスペクタタブを初期化します。"""
+
         self.app = app
         self.frame = ttk.Frame(app.notebook)
         app.notebook.add(self.frame, text='UI要素インスペクタ')
@@ -29,6 +31,7 @@ class UIInspectorTab:
         self.start_hotkey_listener()
 
     def start_hotkey_listener(self):
+        """Ctrl+Shift+X のホットキーを登録します。"""
         try:
             self.hotkey_listener = keyboard.GlobalHotKeys({
                 '<ctrl>+<shift>+x': self.inspect_element_under_cursor
@@ -39,6 +42,7 @@ class UIInspectorTab:
             logging.error('start_hotkey_listener error', exc_info=True)
 
     def generate_code_example(self, elem):
+        """要素情報から簡単なクリックコードを生成します。"""
         props = []
         title = elem.window_text()
         ctrl_type = elem.element_info.control_type
@@ -54,6 +58,7 @@ class UIInspectorTab:
         return "# 要素を特定する情報が不足しています"
 
     def get_element_under_mouse(self):
+        """現在のマウス位置にある要素を取得します。"""
         try:
             x, y = pyautogui.position()
             elem = Desktop(backend="uia").from_point(x, y)
@@ -62,6 +67,7 @@ class UIInspectorTab:
             return None
 
     def inspect_element_under_cursor(self):
+        """マウス下の要素情報を取得して表示します。"""
         try:
             elem = self.get_element_under_mouse()
             if not elem:

@@ -9,6 +9,8 @@ class KeyTab:
     """Tab for recording keyboard operations."""
 
     def __init__(self, app):
+        """キーボード操作タブのウィジェットを初期化します。"""
+
         self.app = app
         self.frame = ttk.Frame(app.notebook)
         app.notebook.add(self.frame, text='キー操作')
@@ -95,6 +97,7 @@ class KeyTab:
         self.operation_label_key3.pack(pady=5)
 
     def generate_key_code(self):
+        """入力内容からキーボード操作用コードを作成します。"""
         try:
             operation = self.operation_var_key.get()
             key_value = self.key_entry.get()
@@ -132,6 +135,7 @@ class KeyTab:
             logging.error("An error occurred while generating the key code", exc_info=True)
 
     def open_url(self, url):
+        """指定されたURLを既定のブラウザで開きます。"""
         try:
             webbrowser.open_new(url)
         except Exception:
