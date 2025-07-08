@@ -11,6 +11,8 @@ class ControlTab:
     """Tab for listing and saving window controls."""
 
     def __init__(self, app):
+        """ウィンドウコントロール取得タブを初期化します。"""
+
         self.app = app
         self.frame = ttk.Frame(app.notebook)
         app.notebook.add(self.frame, text='ウィンドウコントロール')
@@ -37,6 +39,7 @@ class ControlTab:
         self.save_button_control.pack(pady=10)
 
     def update_window_list(self):
+        """現在開いているウィンドウのリストを更新します。"""
         try:
             windows = [w for w in gw.getAllTitles() if w.strip()]
             menu = self.window_list_menu["menu"]
@@ -49,6 +52,7 @@ class ControlTab:
             logging.error("An error occurred while updating the window list", exc_info=True)
 
     def get_window_controls(self):
+        """選択されたウィンドウからコントロール情報を取得して表示します。"""
         # Always clear the text widget when attempting to get controls
         self.text_widget_control.config(state=tk.NORMAL)
         self.text_widget_control.delete("1.0", tk.END)
@@ -76,6 +80,7 @@ class ControlTab:
             self.text_widget_control.config(state=tk.DISABLED)
 
     def save_controls_to_file(self):
+        """表示中のコントロール情報をテキストファイルに保存します。"""
         try:
             controls = self.text_widget_control.get("1.0", tk.END)
             if controls.strip():

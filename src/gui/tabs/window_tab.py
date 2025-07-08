@@ -8,6 +8,8 @@ class WindowTab:
     """Tab for listing all open windows."""
 
     def __init__(self, app):
+        """開いているウィンドウ一覧を表示するタブを設定します。"""
+
         self.app = app
         self.frame = ttk.Frame(app.notebook)
         app.notebook.add(self.frame, text='ウィンドウ一覧')
@@ -19,6 +21,7 @@ class WindowTab:
         self.execute_button_window.pack(pady=10)
 
     def get_windows(self):
+        """現在開いているウィンドウのタイトルを取得して表示します。"""
         try:
             windows = gw.getAllTitles()
             self.text_widget_window.config(state=tk.NORMAL)

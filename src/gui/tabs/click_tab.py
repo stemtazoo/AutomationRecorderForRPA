@@ -8,6 +8,8 @@ class ClickTab:
     """Tab for recording mouse click positions."""
 
     def __init__(self, app):
+        """クリック操作用のウィジェットを準備します。"""
+
         self.app = app
         self.frame = ttk.Frame(app.notebook)
         app.notebook.add(self.frame, text='クリック操作')
@@ -44,6 +46,7 @@ class ClickTab:
         self.screen_y = None
 
     def on_click(self, x, y, button, pressed):
+        """ウィンドウ外でのマウスクリック位置を取得して表示します。"""
         try:
             if pressed:
                 self.app.root.update_idletasks()
@@ -65,6 +68,7 @@ class ClickTab:
             logging.error("Error detecting click position", exc_info=True)
 
     def generate_click_code(self):
+        """選択した操作に対応するPyAutoGUIコードを生成します。"""
         try:
             operation = self.operation_var_click.get()
             if self.screen_x is None or self.screen_y is None:

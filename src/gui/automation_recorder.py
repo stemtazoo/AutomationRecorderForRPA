@@ -15,6 +15,8 @@ class AutomationRecorderApp:
     """Main window for recording and generating automation scripts."""
 
     def __init__(self):
+        """ウィンドウと各タブを作成し、マウス監視を開始します。"""
+
         self.root = tk.Tk()
         self.root.title("Automation Recorder")
 
@@ -40,6 +42,8 @@ class AutomationRecorderApp:
         self.listener.start()
 
     def run(self):
+        """アプリケーションのメインループを開始します。"""
+
         self.root.mainloop()
 
 
