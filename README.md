@@ -17,18 +17,18 @@
 ## ディレクトリ構成
 ```
 AutomationRecorder
-├── config
-├── logs
-│ └── app.log
+├── img
 ├── src
-│ └── gui
-│   ├── init.py
-│   └── automation_recorder.py
-├── LICENCE.md
+│   ├── automation
+│   ├── gui
+│   │   └── tabs
+│   └── utils
+├── LICENSE.md
 ├── main.py
 ├── README.md
 ├── requirements.txt
-└── start.bat
+├── start.bat
+└── logs/ (実行時に自動生成されます)
 ```
 
 ## セットアップ
@@ -126,7 +126,7 @@ AutomationRecorder
     <img src="img/screen_ui_element.png" alt="クリック操作" width="300">
 
 ## ログ
-アプリケーションの実行中に発生するイベントやエラーは、`logs/app.log`に記録されます。
+アプリケーションを起動すると、`logs/` ディレクトリが存在しない場合は自動で作成され、その `logs/app.log` にイベントやエラーが記録されます。
 
 ## ライセンス
 このプロジェクトはMITライセンスの下でライセンスされています。詳細については、[LICENSE](LICENSE.md)ファイルを参照してください。
