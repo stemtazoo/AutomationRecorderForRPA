@@ -3,3 +3,4 @@ PyGetWindow==0.0.9
 pynput==1.8.1
 pywinauto==0.6.8
 pywin32==306
+comtypes==1.1.10
