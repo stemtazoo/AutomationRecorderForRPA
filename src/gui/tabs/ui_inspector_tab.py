@@ -271,18 +271,20 @@ class UIInspectorTab:
         except Exception as e:
             logging.error(f"get_detailed_element_at_coordinate error: {e}")
             return None
+
+    def get_chrome_specific_element(self, x, y):
         """Chrome専用の要素取得を試行します。"""
         try:
             # アクセシビリティAPIを使用してChrome要素を取得
             import win32api
             import win32con
-            
+
             # より精密な座標での要素検索
             hwnd = win32gui.WindowFromPoint((x, y))
-            
+
             # Chromeの場合、複数のレベルで子ウィンドウを探す
             chrome_hwnds = []
-            
+
             def enum_child_windows(hwnd, results):
                 def callback(child_hwnd, _):
                     class_name = win32gui.GetClassName(child_hwnd)
@@ -290,16 +292,16 @@ class UIInspectorTab:
                         results.append((child_hwnd, class_name))
                     return True
                 win32gui.EnumChildWindows(hwnd, callback, None)
-            
+
             # 親ウィンドウから子ウィンドウを列挙
             parent_hwnd = win32gui.GetParent(hwnd)
             if parent_hwnd:
                 enum_child_windows(parent_hwnd, chrome_hwnds)
-            
+
             # 座標に最も近い要素を探す
             closest_element = None
             min_distance = float('inf')
-            
+
             for child_hwnd, class_name in chrome_hwnds:
                 try:
                     rect = win32gui.GetWindowRect(child_hwnd)
@@ -308,15 +310,15 @@ class UIInspectorTab:
                         center_x = (rect[0] + rect[2]) // 2
                         center_y = (rect[1] + rect[3]) // 2
                         distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
-                        
+
                         if distance < min_distance:
                             min_distance = distance
                             closest_element = (child_hwnd, class_name, rect)
-                except:
+                except Exception:
                     continue
-            
+
             return closest_element
-            
+
         except Exception as e:
             logging.error(f"get_chrome_specific_element error: {e}")
             return None
