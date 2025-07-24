@@ -61,7 +61,8 @@ class UIInspectorTab:
         """現在のマウス位置にある要素を取得します。"""
         try:
             x, y = pyautogui.position()
-            elem = Desktop(backend="uia").from_point(x, y)
+            backend = self.app.backend_var.get()
+            elem = Desktop(backend=backend).from_point(x, y)
             return elem
         except ElementNotFoundError:
             return None
@@ -76,10 +77,11 @@ class UIInspectorTab:
                 x, y = pyautogui.position()
                 hwnd = win32gui.WindowFromPoint((x, y))
                 window_title = get_window_title_with_parent(hwnd)
+                backend = self.app.backend_var.get()
                 dlg_code = f"""【dlg設定サンプル】
 from pywinauto.application import Application
 # backend は 'uia' または 'win32' から選べます
-app = Application(backend=\"uia\").connect(title=\"{window_title}\")
+app = Application(backend=\"{backend}\").connect(title=\"{window_title}\")
 dlg = app.window(title=\"{window_title}\")
 # ↓このdlg変数を使って下のコード例をそのまま利用できます！
 """
